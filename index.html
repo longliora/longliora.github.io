@@ -1,39 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Telegram Mini App</title>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      background-color: var(--tg-theme-bg-color, #ffffff);
-      color: var(--tg-theme-text-color, #000000);
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 18px;
-    }
-  </style>
+    <link rel="manifest" href="manifest.json">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-  <h2>Chào {{user}}</h2>
-  <p>Đây là Web App đơn giản dùng Telegram JS SDK!</p>
-  <button onclick="sendData()">Gửi dữ liệu về bot</button>
+    <h2 id="status">Đang kiểm tra PWA...</h2>
+    <div id="log" style="font-size: 12px; color: red;"></div>
 
-  <script>
-    const tg = window.Telegram.WebApp;
+    <script>
+        const status = document.getElementById('status');
+        const log = document.getElementById('log');
 
-    tg.expand(); // Mở rộng web app toàn màn hình
+        // Kiểm tra Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => { status.innerText = "1. SW OK. Đang chờ Prompt..."; })
+                .catch(err => { log.innerText += "Lỗi SW: " + err + "\n"; });
+        } else {
+            log.innerText += "Trình duyệt không hỗ trợ SW\n";
+        }
 
-    const user = tg.initDataUnsafe.user?.first_name || "bạn";
-    document.body.innerHTML = document.body.innerHTML.replace("{{user}}", user);
+        // Kiểm tra sự kiện cài đặt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            status.innerText = "2. CHUẨN PWA! Bấm nút bên dưới:";
+            const btn = document.createElement('button');
+            btn.innerText = "CÀI ĐẶT NGAY";
+            btn.style.padding = "20px";
+            btn.onclick = () => e.prompt();
+            document.body.appendChild(btn);
+        });
 
-    function sendData() {
-      tg.sendData("Người dùng đã nhấn nút gửi!");
-    }
-  </script>
+        // Sau 5 giây nếu không thấy gì
+        setTimeout(() => {
+            if (status.innerText.includes("1. SW OK")) {
+                log.innerText += "Lỗi: Manifest chưa chuẩn hoặc chưa chạy qua HTTPS.";
+            }
+        }, 5000);
+    </script>
 </body>
 </html>
